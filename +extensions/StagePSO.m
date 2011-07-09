@@ -17,7 +17,7 @@ classdef StagePSO
             %     'Iterations'  : The iterations to plot (defaults to all)
             %
             % Author: Jesse van den Kieboom <jesse.vandenkieboom@epfl.ch>
-                        p = inputParser;
+            p = inputParser;
 
             p.addParamValue('Axes', gca);
             p.addParamValue('Plot', {});
