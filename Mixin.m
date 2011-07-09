@@ -1,8 +1,25 @@
 % Mixin class
 classdef Mixin < dynamicprops
+    properties(Access=private)
+        execute_before = []
+    end
+
     methods
+        function ret = Mixin()
+            ret = ret@dynamicprops();
+
+            ret.execute_before = [];
+        end
+
+        function execute_before_call(obj, func)
+            obj.execute_before = func;
+        end
+
         function mix(obj, cname)
             m = meta.class.fromName(cname);
+
+            constructor = str2func(cname);
+            oo = constructor();
 
             for i = 1:length(m.Methods)
                 meth = m.Methods{i};
@@ -18,10 +35,11 @@ classdef Mixin < dynamicprops
                 ffname = [meth.DefiningClass.Name '.' meth.Name];
 
                 p = addprop(obj, meth.Name);
+
                 p.SetAccess = 'private';
                 p.DetailedDescription = help(ffname);
 
-                p.GetMethod = @(obj) Mixin.get_meta_func(obj, meth);
+                p.GetMethod = @(obj) obj.get_meta_func(oo, meth);
             end
         end
 
@@ -42,20 +60,29 @@ classdef Mixin < dynamicprops
         end
     end
 
-    methods(Static, Access=private)
-        function out = get_meta_func(obj, meth)
-            out = @(varargin) Mixin.call_meta_func(obj, meth, varargin{:});
+    methods(Access=private)
+        function out = get_meta_func(obj, oo, meth)
+            out = @(varargin) obj.call_meta_func(oo, meth, varargin{:});
         end
 
-        function out = call_meta_func(obj, meth, varargin)
+        function out = call_meta_func(obj, oo, meth, varargin)
             ffname = [meth.DefiningClass.Name '.' meth.Name];
 
             if length(varargin) == 1 && ischar(varargin{1}) && strcmp(varargin{1}, 'help')
                 out = [];
                 help(ffname);
             else
-                func = str2func(ffname);
-                out = func(obj, varargin{:});
+                if ~isempty(obj.execute_before)
+                    obj.execute_before(oo, meth, varargin{:});
+                end
+
+                if meth.Static
+                    func = str2func(ffname);
+                    out = func(obj, varargin{:});
+                else
+                    func = str2func(meth.Name);
+                    out = func(oo, obj, varargin{:});
+                end
             end
         end
     end
