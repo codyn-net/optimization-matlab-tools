@@ -9,6 +9,7 @@
 %     Methods:
 %         plot_energy
 %         plot_fitness
+%         plot_parameters
 %
 %     Author: Jesse van den Kieboom <jesse.vandenkieboom@epfl.ch>
 %
@@ -67,6 +68,26 @@ classdef Optimizer < Mixin
 
     methods
         function h = plot_fitness(obj, varargin)
+            % PLOT_FITNESS    Plot fitness values in each iteration
+            %
+            %     Plot the fitness values in each iteration.
+            %
+            %     Options:
+            %
+            %         Fields      : A cell array of parameters to consider
+            %                       (defaults to all parameters)
+            %         Axes        : The axes to plot in (defaults to gca)
+            %         Plot        : Additional parameters to pass to the plot
+            %                       command ({PROP, VALUE, ...})
+            %         Iterations  : The iterations to plot (defaults to all iterations)
+            %         Smooth      : Smooth the fitness values with a specific window size (defaults to 0)
+            %         Average     : Show average fitness values instead of the best (defaults to 0)
+
+            if obj.show_help('plot_energy', varargin{:})
+                h = [];
+                return;
+            end
+
             p = inputParser;
 
             p.addParamValue('Fields', {});
@@ -145,6 +166,21 @@ classdef Optimizer < Mixin
         end
 
         function h = plot_parameters(obj, varargin)
+            % PLOT_PARAMETERS    Plot parameter values in each iteration
+            %
+            %     Plot the parameter values in each iteration.
+            %
+            %     Options:
+            %
+            %         Fields      : A cell array of parameters to consider
+            %                       (defaults to all parameters)
+            %         Axes        : The axes to plot in (defaults to gca)
+            %         Plot        : Additional parameters to pass to the plot
+            %                       command ({PROP, VALUE, ...})
+            %         Iterations  : The iterations to plot (defaults to all iterations)
+            %         ShowError   : Whether to show standard deviation error bars
+            %         ShowBest    : Show parameter values of the best solution
+
             if obj.show_help('plot_parameters', varargin{:})
                 h = [];
                 return;
@@ -211,6 +247,7 @@ classdef Optimizer < Mixin
             %         Plot        : Additional parameters to pass to the plot
             %                       command ({PROP, VALUE, ...})
             %         Iterations  : The iterations to plot (defaults to all iterations)
+
             if obj.show_help('plot_energy', varargin{:})
                 h = [];
                 return;
