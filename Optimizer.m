@@ -14,12 +14,25 @@
 %
 classdef Optimizer < Mixin
     properties (SetAccess = protected)
-        data = []
+        data = [];
+    end
+
+    properties (Access = protected)
+        opts = struct();
     end
 
     methods(Static)
-        function ret = create(filename)
-            data = Optimizer.load_database(filename);
+        function ret = create(filename, varargin)
+            p = inputParser;
+
+            p.addRequired('Filename');
+            p.addOptional('Extractor', '');
+            p.addOptional('ExtractorArgs', '');
+
+            p.parse(filename, varargin{:});
+            opts = p.Results;
+
+            data = Optimizer.load_database(opts.Filename, opts.Extractor, opts.ExtractorArgs);
 
             classname = Optimizer.find_optimizer(data.job.optimizer);
 
@@ -31,11 +44,15 @@ classdef Optimizer < Mixin
 
             func = str2func(classname);
             ret = func(data);
+
+            ret.opts = opts;
         end
     end
 
     methods(Access=protected)
         function ret = Optimizer(data)
+            ret = ret@Mixin();
+
             ret.data = data;
 
             for i = 1:length(data.job.extensions)
@@ -105,14 +122,79 @@ classdef Optimizer < Mixin
             idx = idx';
         end
 
-        function ret = best_fitness(obj)
+        function ret = best_for_data(obj, data)
             idx = obj.best_indices();
-            s = size(obj.data.fitness_values);
+            s = size(data);
 
             linidx = obj.indices_from_solutions(idx, s(3));
 
             % Select and reshape
-            ret = reshape(obj.data.fitness_values(linidx), obj.data.iterations, s(3));
+            ret = reshape(data(linidx), obj.data.iterations, s(3));
+        end
+
+        function ret = best_fitness(obj)
+            ret = obj.best_for_data(obj.data.fitness_values);
+        end
+
+        function ret = best_parameters(obj)
+            ret = obj.best_for_data(obj.data.parameter_values);
+        end
+
+        function ret = best_data(obj)
+            ret = obj.best_for_data(obj.data.data_values);
+        end
+
+        function h = plot_parameters(obj, varargin)
+            if obj.show_help('plot_parameters', varargin{:})
+                h = [];
+                return;
+            end
+
+            p = inputParser;
+
+            p.addParamValue('Fields', {});
+            p.addParamValue('Axes', gca);
+            p.addParamValue('Plot', {});
+            p.addParamValue('Iterations', 1:size(obj.data.parameter_values, 1));
+            p.addOptional('ShowError', 1);
+            p.addOptional('ShowBest', 0);
+
+            p.parse(varargin{:});
+            ret = p.Results;
+
+            ind = obj.parameter_indices(ret.Fields);
+
+            if ret.ShowBest
+                data = obj.best_parameters();
+                data = data(:, ind);
+            else
+                r = obj.data.parameter_values(:, :, ind);
+
+                data = squeeze(mean(r, 2));
+                st = squeeze(std(r, 0, 2));
+            end
+
+            if ret.ShowError && ~ret.ShowBest
+                it = repmat(ret.Iterations', 1, size(data, 2));
+
+                h = errorbar(ret.Axes, it, data, st, ret.Plot{:});
+            else
+                h = plot(ret.Axes, ret.Iterations, data, ret.Plot{:});
+            end
+
+            if isempty(ret.Fields)
+                leg = obj.data.parameter_names;
+            else
+                leg = ret.Fields;
+            end
+
+            legend(leg);
+
+            xlabel('Iteration');
+            ylabel('Parameter Value');
+            title('Parameter Values');
+
+            xlim([ret.Iterations(1), ret.Iterations(end)]);
         end
 
         function h = plot_energy(obj, varargin)
@@ -129,6 +211,10 @@ classdef Optimizer < Mixin
             %         Plot        : Additional parameters to pass to the plot
             %                       command ({PROP, VALUE, ...})
             %         Iterations  : The iterations to plot (defaults to all iterations)
+            if obj.show_help('plot_energy', varargin{:})
+                h = [];
+                return;
+            end
 
             p = inputParser;
 
@@ -215,6 +301,15 @@ classdef Optimizer < Mixin
             end
         end
 
+        function out = show_help(obj, name, varargin)
+            out = 0;
+
+            if length(varargin) == 1 && ischar(varargin{1}) && strcmp(varargin{1}, 'help')
+                out = 1;
+                help(name);
+            end
+        end
+
         function out = fitness_indices(obj, names)
             out = find_indices(obj, obj.data.fitness_names, names);
         end
@@ -225,18 +320,41 @@ classdef Optimizer < Mixin
     end
 
     methods (Static, Access=private)
-        function out = load_database(filename)
+        function out = load_database(filename, extractor, extractor_args)
             if ~ischar(filename)
                 out = filename;
                 return
             end
 
+            if isempty(extractor)
+                extractor = 'optiextractor';
+            end
+
+            if ~isempty(extractor_args)
+                extractor = [extractor, ' ', extractor_args];
+            end
+
             if regexpi(filename, '.db$')
+                if ~exist(filename)
+                    error(['The database `', filename, '''does not exist...']);
+                end
+
+                info = dir(filename);
                 matfile = [filename, '.mat'];
 
-                if ~exist(matfile)
+                ret = exist(matfile);
+
+                if ret
+                    i = dir(matfile);
+
+                    if info.datenum > i.datenum
+                        ret = 0;
+                    end
+                end
+
+                if ~ret
                     disp('Converting database, standby...');
-                    [status, result] = system(['LD_LIBRARY_PATH="" /usr/bin/optiextractor -e "' filename '" -o "' matfile '"']);
+                    [status, result] = system(['LD_LIBRARY_PATH="" ', extractor, ' -e "', filename, '" -o "', matfile, '"']);
 
                     if status ~= 0
                         error(result);
