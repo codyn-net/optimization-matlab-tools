@@ -1,7 +1,7 @@
 % SPSO optimizer
 classdef StagePSO
-    methods(Static)
-        function h = plot_stages(obj, varargin)
+    methods
+        function h = plot_stages(self, obj, varargin)
             % PLOT_STAGES    Plot number of particles per stage
             %
             %     Plot the number of particles in each stage per iteration.
@@ -61,7 +61,7 @@ classdef StagePSO
             title('Stage Distribution');
         end
 
-        function idx = best_indices(obj)
+        function idx = best_indices(self, obj)
             it = obj.data.iterations;
             idx = zeros(1, it);
 
