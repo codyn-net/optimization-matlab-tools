@@ -263,6 +263,9 @@ classdef Optimizer < Mixin
             %     Plot the energy of the solutions (change in parameter values
             %     per iteration).
             %
+            %     Magnitude of the speed vector (normalized on boundaries
+            %                                    from 0 -> 1)
+            %
             %     Options:
             %
             %         Fields      : A cell array of parameters to consider
@@ -384,6 +387,10 @@ classdef Optimizer < Mixin
             if ~ischar(filename)
                 out = filename;
                 return
+            end
+
+            if ~strcmp(filename(1), '/')
+                filename = fullfile(pwd, filename);
             end
 
             if isempty(extractor)
