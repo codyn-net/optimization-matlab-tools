@@ -55,13 +55,15 @@ classdef Optimizer < Mixin
             ret = ret@Mixin();
 
             ret.data = data;
+			
+			if isfield(data.job, 'extensions')
+				for i = 1:length(data.job.extensions)
+					ext = Optimizer.find_extension(data.job.extensions{i});
 
-            for i = 1:length(data.job.extensions)
-                ext = Optimizer.find_extension(data.job.extensions{i});
-
-                if ~isempty(ext)
-                    ret.mix(['extensions.' ext]);
-                end
+					if ~isempty(ext)
+						ret.mix(['extensions.' ext]);
+					end
+				end
             end
         end
     end
