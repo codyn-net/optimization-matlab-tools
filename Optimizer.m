@@ -308,7 +308,6 @@ classdef Optimizer < Mixin
             end
 
             if ret.Smooth > 0
-                size(speed)
                 speed = smooth(speed, ret.Smooth);
             end
 
