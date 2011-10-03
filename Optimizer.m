@@ -84,8 +84,9 @@ classdef Optimizer < Mixin
             %         Iterations  : The iterations to plot (defaults to all iterations)
             %         Smooth      : Smooth the fitness values with a specific window size (defaults to 0)
             %         Average     : Show average fitness values instead of the best (defaults to 0)
+            %         Envelope    : Show only improvements in fitness
 
-            if obj.show_help('plot_energy', varargin{:})
+            if obj.show_help('plot_fitness', varargin{:})
                 h = [];
                 return;
             end
@@ -98,6 +99,7 @@ classdef Optimizer < Mixin
             p.addParamValue('Iterations', 1:size(obj.data.fitness_values, 1));
             p.addParamValue('Smooth', 0);
             p.addParamValue('Average', 0);
+            p.addParamValue('Envelope', 0);
 
             p.parse(varargin{:});
             ret = p.Results;
@@ -113,6 +115,22 @@ classdef Optimizer < Mixin
             if ret.Smooth > 0
                 os = size(fit);
                 fit = reshape(smooth(fit, ret.Smooth), os);
+            end
+
+            if ret.Envelope
+                ismin = strcmp(obj.data.fitness_settings.('__mode__'), 'minimize');
+                val = fit(1, :);
+
+                for i = 1:size(fit, 1)
+                    if ismin
+                        idx = fit(i, :) < val;
+                    else
+                        idx = fit(i, :) > val;
+                    end
+
+                    val(idx) = fit(i, idx);
+                    fit(i, :) = val;
+                end
             end
 
             h = plot(ret.Axes, ret.Iterations, fit(ret.Iterations, ind), ret.Plot{:});
