@@ -158,7 +158,11 @@ classdef Optimizer < Mixin
             end
 
             % For each iteration, select the best solution
-            [~, idx] = max(obj.data.fitness_values(:, :, 1), [], 2);
+            if strcmp(obj.data.fitness_settings.('__mode__'), 'minimize')
+                [~, idx] = min(obj.data.fitness_values(:, :, 1), [], 2);
+            else
+                [~, idx] = max(obj.data.fitness_values(:, :, 1), [], 2);
+            end
 
             idx = idx';
         end
