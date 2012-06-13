@@ -70,6 +70,25 @@ classdef Optimizer < Mixin
             end
         end
 
+        function ret = parameter_best(files, varargin)
+            opts = {};
+
+            for f = 1:length(files)
+                opt = Optimizer.create(files{f}, varargin{:});
+                opts{f} = opt;
+
+                idx = opt.global_best_indices();
+
+                p(f, :) = opt.data.parameter_values(idx(1), idx(2), :);
+            end
+
+            m = mean(p);
+            s = std(p);
+
+            hold off;
+            ret = bar(1:size(p, 2), m);
+            hold on;
+            errorbar(1:size(p, 2), m, m - s, m + s, 'o');
         end
     end
 
@@ -78,15 +97,15 @@ classdef Optimizer < Mixin
             ret = ret@Mixin();
 
             ret.data = data;
-			
-			if isfield(data.job, 'extensions')
-				for i = 1:length(data.job.extensions)
-					ext = Optimizer.find_extension(data.job.extensions{i});
 
-					if ~isempty(ext)
-						ret.mix(['extensions.' ext]);
-					end
-				end
+            if isfield(data.job, 'extensions')
+                for i = 1:length(data.job.extensions)
+                    ext = Optimizer.find_extension(data.job.extensions{i});
+
+                    if ~isempty(ext)
+                        ret.mix(['extensions.' ext]);
+                    end
+                end
             end
         end
     end
@@ -188,6 +207,43 @@ classdef Optimizer < Mixin
             end
 
             idx = idx';
+        end
+        
+        function [idx, fit, par, dat] = solution_s(obj, idx)
+            if nargin < 2
+                idx = obj.global_best_indices();
+            end
+
+            f = squeeze(obj.data.fitness_values(idx(1), idx(2), :));
+            p = squeeze(obj.data.parameter_values(idx(1), idx(2), :));
+            d = squeeze(obj.data.data_values(idx(1), idx(2), :));
+           
+            fit = Optimizer.make_struct(f, obj.data.fitness_names);
+            par = Optimizer.make_struct(p, obj.data.parameter_names);
+            dat = Optimizer.make_struct(d, obj.data.data_names);
+        end
+        
+        function [idx, fit, par, dat] = global_best(obj)
+            idx = obj.global_best_indices();
+            fit = squeeze(obj.data.fitness_values(idx(1), idx(2), :));
+            par = squeeze(obj.data.parameter_values(idx(1), idx(2), :));
+            dat = squeeze(obj.data.data_values(idx(1), idx(2), :));
+        end
+
+        function idx = global_best_indices(obj)
+            if obj.overridden('global_best_indices')
+                idx = obj.call_override('global_best_indices');
+            else
+                fit = squeeze(obj.data.fitness_values(:, :, 1));
+
+                if strcmp(obj.data.fitness_settings.('__mode__'), 'minimize')
+                    [~, idx] = min(fit(:));
+                else
+                    [~, idx] = max(fit(:));
+                end
+
+                [idx(1), idx(2)] = ind2sub(size(fit), idx);
+            end
         end
 
         function ret = best_for_data(obj, data)
@@ -485,6 +541,25 @@ classdef Optimizer < Mixin
         function out = find_extension(name)
             out = Optimizer.find_mfile_in_dir(name, '+extensions');
         end
+        
+        function n = field_name(name)
+            n = regexprep(name, '[^a-zA-Z0-9_]', '_');
+        end
+
+        function s = make_struct(dat, names)
+            s = struct();
+            
+            for i = 1:length(names)
+                name = Optimizer.field_name(names{i});
+                
+                if iscell(dat)
+                    s.(name) = dat{i};
+                else
+                    s.(name) = dat(i);
+                end
+            end
+        end
+    
     end
 end
 
