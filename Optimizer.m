@@ -438,6 +438,10 @@ classdef Optimizer < Mixin
 
             xlim([ret.Iterations(1), ret.Iterations(end)]);
         end
+
+        function run(obj, iteration, solution)
+            [status, result] = system(['optiextractor -r -i ', num2str(iteration), ' -s ', num2str(solution), ' "', obj.opts.Filename, '"'])
+        end
     end
 
     methods (Access=protected)
@@ -475,7 +479,7 @@ classdef Optimizer < Mixin
             out = find_indices(obj, obj.data.parameter_names, names);
         end
     end
-
+    
     methods (Static, Access=private)
         function out = load_database(filename, extractor, extractor_args)
             if ~ischar(filename)
