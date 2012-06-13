@@ -78,6 +78,38 @@ classdef StagePSO
                 idx(i) = ii(id);
             end
         end
+
+        function idx = global_best_indices(self, obj)
+            it = obj.data.iterations;
+            idx = [0, 0];
+
+            stidx = Utils.find_string(obj.data.data_names, 'StagePSO::stage');
+            gmstage = 0;
+            gmfit = 0;
+
+            for i = 1:it
+                % Find max stage
+                mstage = max(obj.data.data_values(i, :, stidx));
+
+                if mstage < gmstage
+                    continue;
+                end
+
+                if mstage >= gmstage
+                    % Find max fitness value for particles with this stage
+                    ii = find(obj.data.data_values(i, :, stidx) == mstage);
+
+                    [v, id] = max(obj.data.fitness_values(i, ii, 1), [], 2);
+
+                    if mstage > gmstage || v > gmfit
+                        gmstage = mstage;
+                        gmfit = v;
+
+                        idx = [i, ii(id)];
+                    end
+                end
+            end
+        end
     end
 end
 
