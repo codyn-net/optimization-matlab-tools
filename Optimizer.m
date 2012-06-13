@@ -24,6 +24,11 @@ classdef Optimizer < Mixin
 
     methods(Static)
         function ret = create(filename, varargin)
+            if isa(filename, 'Optimizer')
+                ret = filename;
+                return;
+            end
+
             p = inputParser;
 
             p.addRequired('Filename');
@@ -33,20 +38,38 @@ classdef Optimizer < Mixin
             p.parse(filename, varargin{:});
             opts = p.Results;
 
-            data = Optimizer.load_database(opts.Filename, opts.Extractor, opts.ExtractorArgs);
-
-            classname = Optimizer.find_optimizer(data.job.optimizer);
-
-            if isempty(classname)
-                classname = 'Optimizer';
+            if iscell(opts.Filename)
+                for i = 1:length(opts.Filename)
+                    data{i} = Optimizer.load_database(opts.Filename{i}, opts.Extractor, opts.ExtractorArgs);
+                end
             else
-                classname = ['optimizers.', classname];
+                data{1} = Optimizer.load_database(opts.Filename, opts.Extractor, opts.ExtractorArgs);
             end
 
-            func = str2func(classname);
-            ret = func(data);
+            for i = 1:length(data)
+                classname = Optimizer.find_optimizer(data{i}.job.optimizer);
 
-            ret.opts = opts;
+                if isempty(classname)
+                    classname = 'Optimizer';
+                else
+                    classname = ['optimizers.', classname];
+                end
+
+                func = str2func(classname);
+                ret{i} = func(data{i});
+
+                ret{i}.opts = opts;
+
+                if iscell(opts.Filename)
+                    ret{i}.opts.Filename = opts.Filename{i}
+                end
+            end
+
+            if ~iscell(opts.Filename)
+                ret = ret{1};
+            end
+        end
+
         end
     end
 
