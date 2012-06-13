@@ -281,6 +281,8 @@ classdef Optimizer < Mixin
             %         Plot        : Additional parameters to pass to the plot
             %                       command ({PROP, VALUE, ...})
             %         Iterations  : The iterations to plot (defaults to all iterations)
+            %         Normalized  : Plot normalized towards parameter
+            %         boundaries
             %         ShowError   : Whether to show standard deviation error bars
             %         ShowBest    : Show parameter values of the best solution
 
@@ -297,6 +299,7 @@ classdef Optimizer < Mixin
             p.addParamValue('Iterations', 1:size(obj.data.parameter_values, 1));
             p.addOptional('ShowError', 1);
             p.addOptional('ShowBest', 0);
+            p.addOptional('Normalized', 0);
 
             p.parse(varargin{:});
             ret = p.Results;
@@ -308,6 +311,18 @@ classdef Optimizer < Mixin
                 data = data(:, ind);
             else
                 r = obj.data.parameter_values(:, :, ind);
+
+                if ret.Normalized
+                   % Scale according to boundaries
+                    for i = 1:length(ind)
+                        nm = obj.data.parameter_names{ind(i)};
+                        param = obj.data.parameters.(strrep(strrep(nm, ':', '_'), '-', '_'));
+                        bound = obj.data.boundaries.(param);
+
+                        df = bound.max - bound.min;
+                        r(:, :, i) = (r(:, :, i) - bound.min) / df;
+                    end
+                end
 
                 data = squeeze(mean(r, 2));
                 st = squeeze(std(r, 0, 2));
