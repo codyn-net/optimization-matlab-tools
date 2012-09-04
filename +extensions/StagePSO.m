@@ -61,6 +61,18 @@ classdef StagePSO
             title('Stage Distribution');
         end
 
+        function idx = best_stages(self, obj)
+            it = obj.data.iterations;
+            idx = zeros(1, it);
+
+            stidx = Utils.find_string(obj.data.data_names, 'StagePSO::stage');
+
+            for i = 1:it
+                % Find max stage
+                idx(1, i) = max(obj.data.data_values(i, :, stidx));
+            end
+        end
+
         function idx = best_indices(self, obj)
             it = obj.data.iterations;
             idx = zeros(1, it);
