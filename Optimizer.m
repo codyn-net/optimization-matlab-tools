@@ -446,6 +446,22 @@ classdef Optimizer < Mixin
         function run(obj, iteration, solution)
             [status, result] = system(['optiextractor -r -i ', num2str(iteration), ' -s ', num2str(solution), ' "', obj.opts.Filename, '"'])
         end
+
+        function out = fitness_indices(obj, names)
+            if ischar(names)
+                names = {names};
+            end
+
+            out = find_indices(obj, obj.data.fitness_names, names);
+        end
+
+        function out = parameter_indices(obj, names)
+            if ischar(names)
+                names = {names};
+            end
+
+            out = find_indices(obj, obj.data.parameter_names, names);
+        end
     end
 
     methods (Access=protected)
@@ -473,14 +489,6 @@ classdef Optimizer < Mixin
                 out = 1;
                 help(name);
             end
-        end
-
-        function out = fitness_indices(obj, names)
-            out = find_indices(obj, obj.data.fitness_names, names);
-        end
-
-        function out = parameter_indices(obj, names)
-            out = find_indices(obj, obj.data.parameter_names, names);
         end
     end
     
