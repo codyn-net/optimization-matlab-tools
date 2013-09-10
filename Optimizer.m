@@ -16,6 +16,7 @@
 classdef Optimizer < Mixin
     properties (SetAccess = protected)
         data = [];
+        filename = '';
     end
 
     properties (Access = protected)
@@ -62,6 +63,9 @@ classdef Optimizer < Mixin
 
                 if iscell(opts.Filename)
                     ret{i}.opts.Filename = opts.Filename{i}
+                    ret{i}.filename = opts.Filename{i};
+                else
+                    ret{i}.filename = opts.Filename;
                 end
             end
 
